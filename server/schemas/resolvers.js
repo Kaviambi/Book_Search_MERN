@@ -34,15 +34,40 @@ const resolvers = {
             const token = signToken(user);
 
             return { token, user };
-        }
+        },
 
-        addUser:
+        addUser: async (parent , {args}) => {
+            const user = await User.create({args});
+            const token = signToken(user);
 
-        saveBook:
+            return { token, user};
+        },
 
-        removeBook:
-    }
-}
+        saveBook: async (parent, {body}, context) => {
+            if(context.user) {
+                const updatedBooks = await User.findOneAndUpdate(
+                    { _id: context.user._id },
+                    { $addToSet: { savedBooks: body } },
+                    { new: true, runValidators: true }
+                ).populate('savedBooks');
 
+                return updatedBooks;
+            }
+            throw new AuthenticationError('Please Login to view your saved books!');
+        },
 
+        removeBook: async (parent, {bookId}, context) => {
+            if(context.user) {
+                const updatedBooks = await User.findOneAndUpdate(
+                    { _id: context.user._id },
+                    { $pull: { savedBooks: { bookId } } },
+                    { new: true }
+                ).populate('savedBooks');
+                return updatedBooks;
+            }
+        },
+    },
+};
+
+module.exports = resolvers;
 
