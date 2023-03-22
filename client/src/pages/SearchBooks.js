@@ -9,8 +9,14 @@ import {
 } from 'react-bootstrap';
 
 import Auth from '../utils/auth';
-import { saveBook, searchGoogleBooks } from '../utils/API';
+import { searchGoogleBooks } from '../utils/API';
 import { saveBookIds, getSavedBookIds } from '../utils/localStorage';
+
+import { useMutation } from '@apollo/client';
+import { SAVE_BOOK} from '../utils/mutations';
+import { GET_ME} from '../utils/queries';
+
+
 
 const SearchBooks = () => {
   // create state for holding returned google api data
@@ -20,6 +26,49 @@ const SearchBooks = () => {
 
   // create state to hold saved bookId values
   const [savedBookIds, setSavedBookIds] = useState(getSavedBookIds());
+
+  
+  /* Example:
+  const [addThought, { error }] = useMutation(ADD_THOUGHT, {
+    update(cache, { data: { addThought } }) {
+      try {
+        const { thoughts } = cache.readQuery({ query: QUERY_THOUGHTS });
+
+        cache.writeQuery({
+          query: QUERY_THOUGHTS,
+          data: { thoughts: [addThought, ...thoughts] },
+        });
+      } catch (e) {
+        console.error(e);
+      }
+
+      // update me object's cache
+      const { me } = cache.readQuery({ query: QUERY_ME });
+      cache.writeQuery({
+        query: QUERY_ME,
+        data: { me: { ...me, thoughts: [...me.thoughts, addThought] } },
+      });
+    },
+  });*/
+
+  const [saveBook] = useMutation(SAVE_BOOK, {
+    update(cache, {data: {saveBook}}) {
+      try{
+        const { me } = cache.readQuery({
+          query: GET_ME,
+        });
+
+        cache.writeQuery({
+          query: GET_ME, data: { me: {...me, 
+            savedBooks: [...me.savedBooks, saveBook.savedBooks[saveBook.savedBooks.length -1],
+          ],
+        }
+      }
+        }
+        )
+      } catch(e){console.error(e)}
+    },
+  });
 
   // set up useEffect hook to save `savedBookIds` list to localStorage on component unmount
   // learn more here: https://reactjs.org/docs/hooks-effect.html#effects-with-cleanup
@@ -72,14 +121,11 @@ const SearchBooks = () => {
     }
 
     try {
-      const response = await saveBook(bookToSave, token);
-
-      if (!response.ok) {
-        throw new Error('something went wrong!');
-      }
+      await saveBook({ variables: { bookToSave }});
 
       // if book successfully saves to user's account, save book id to state
       setSavedBookIds([...savedBookIds, bookToSave.bookId]);
+      saveBookIds(saveBookIds);
     } catch (err) {
       console.error(err);
     }
@@ -91,7 +137,7 @@ const SearchBooks = () => {
         <Container>
           <h1>Search for Books!</h1>
           <Form onSubmit={handleFormSubmit}>
-            <Form.Row>
+            <Form>
               <Col xs={12} md={8}>
                 <Form.Control
                   name='searchInput'
@@ -107,7 +153,7 @@ const SearchBooks = () => {
                   Submit Search
                 </Button>
               </Col>
-            </Form.Row>
+            </Form>
           </Form>
         </Container>
       </div>
