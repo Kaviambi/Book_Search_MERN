@@ -60,7 +60,7 @@ const SearchBooks = () => {
 
         cache.writeQuery({
           query: GET_ME, data: { me: {...me, 
-            savedBooks: [...me.savedBooks, saveBook.savedBooks[saveBook.savedBooks.length -1],
+            savedBooks: [...me.savedBooks, saveBook.savedBooks[saveBook.savedBooks.length],
           ],
         }
       }
